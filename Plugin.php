@@ -3,13 +3,13 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 密码找回插件
  *
- * @package Passport
- * @author 小否先生
- * @version 1.0.1
- * @link https://github.com/mhcyong
+ * @package TypechoPassport
+ * @author tianlingzi
+ * @version 2.0
+ * @link https://www.tianlingzi.top/archives/256/
  * @dependence 14.5.26-*
  */
-class Passport_Plugin implements Typecho_Plugin_Interface
+class TypechoPassport_Plugin implements Typecho_Plugin_Interface
 {
     /**
      * 激活插件方法,如果激活失败,直接抛出异常
@@ -20,8 +20,8 @@ class Passport_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
-        Helper::addRoute('passport_forgot', '/passport/forgot', 'Passport_Widget', 'doForgot');
-        Helper::addRoute('passport_reset', '/passport/reset', 'Passport_Widget', 'doReset');
+        Helper::addRoute('typechopassport_forgot', '/passport/forgot', 'TypechoPassport_Widget', 'doForgot');
+        Helper::addRoute('typechopassport_reset', '/passport/reset', 'TypechoPassport_Widget', 'doReset');
 
         return _t('请配置此插件的SMTP信息, 以使您的插件生效');
     }
@@ -35,8 +35,8 @@ class Passport_Plugin implements Typecho_Plugin_Interface
      */
     public static function deactivate()
     {
-        Helper::removeRoute('passport_reset');
-        Helper::removeRoute('passport_forgot');
+        Helper::removeRoute('typechopassport_reset');
+        Helper::removeRoute('typechopassport_forgot');
     }
 
     /**

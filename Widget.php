@@ -3,7 +3,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 找回密码类
  *
- * @package Passport
+ * @package TypechoPassport
  * @copyright Copyright (c) 2016 小否先生 (https://github.com/mhcyong)
  * @license GNU General Public License 2.0
  */
@@ -11,7 +11,12 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-class Passport_Widget extends Typecho_Widget
+// 手动加载PHPMailer类
+require_once __DIR__ . '/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/PHPMailer/Exception.php';
+require_once __DIR__ . '/PHPMailer/SMTP.php';
+
+class TypechoPassport_Widget extends Typecho_Widget
 {
     /**
      * 配置表
@@ -51,16 +56,8 @@ class Passport_Widget extends Typecho_Widget
 
         $this->notice = parent::widget('Widget_Notice');
         $this->options = parent::widget('Widget_Options');
-        $this->config = $this->options->plugin('Passport');
+        $this->config = $this->options->plugin('TypechoPassport');
     }
-
-    /**
-     * execute function.
-     *
-     * @access public
-     * @return void
-     */
-    public function execute(){}
 
     /**
      * 找回密码
@@ -68,8 +65,6 @@ class Passport_Widget extends Typecho_Widget
      * @access public
      * @return void
      */
-
-
     public function doForgot()
     {
         require_once 'theme/forgot.php';
@@ -78,6 +73,12 @@ class Passport_Widget extends Typecho_Widget
             /* 验证表单 */
             if ($error = $this->forgotForm()->validate()) {
                 $this->notice->set($error, 'error');
+                return false;
+            }
+
+            // 检查插件配置
+            if (empty($this->config->host) || empty($this->config->username) || empty($this->config->password)) {
+                $this->notice->set(_t('插件未配置，请先在后台配置SMTP信息'), 'error');
                 return false;
             }
 
@@ -97,13 +98,8 @@ class Passport_Widget extends Typecho_Widget
             $url = Typecho_Common::url('/passport/reset?token=' . $token, $this->options->index);
 
             /* 发送重置密码地址 */
-
-            require 'PHPMailer/Exception.php';
-            require 'PHPMailer/PHPMailer.php';
-            require 'PHPMailer/SMTP.php';
-
-            $mail = new PHPMailer(true);                              // Passing `true` enables exceptions
             try {
+                $mail = new PHPMailer(true);                              // Passing `true` enables exceptions
                 //服务器配置
                 $mail->CharSet ="UTF-8";                     //设定邮件编码
                 $mail->SMTPDebug = 0;                        // 调试模式输出
@@ -120,15 +116,6 @@ class Passport_Widget extends Typecho_Widget
                 $mail->setFrom($this->config->username, $this->options->title);
                 $mail->addAddress($user['mail'], $user['name']);
 
-                //$mail->addAddress('ellen@example.com');  // 可添加多个收件人
-                //$mail->addReplyTo('mhcyong@163.com', 'info'); //回复的时候回复给哪个邮箱 建议和发件人一致
-                //$mail->addCC('cc@example.com');                    //抄送
-                //$mail->addBCC('bcc@example.com');                    //密送
-
-                //发送附件
-                // $mail->addAttachment('../xy.zip');         // 添加附件
-                // $mail->addAttachment('../thumb-1.jpg', 'new.jpg');    // 发送附件并且重命名
-
                 //Content
                 $mail->isHTML(true);                                  // 是否以HTML文档格式发送  发送后客户端可直接显示对应HTML内容
                 $mail->Subject = '密码重置' . date('Y-m-d H:i:s');
@@ -140,7 +127,9 @@ class Passport_Widget extends Typecho_Widget
                     $this->notice->set(_t('邮件已成功发送, 请注意查收'), 'success');
                 }
             } catch (Exception $e) {
-                echo '邮件发送失败: ', $mail->ErrorInfo;
+                $this->notice->set(_t('邮件发送失败: ' . $e->getMessage()), 'error');
+            } catch (Error $e) {
+                $this->notice->set(_t('系统错误: ' . $e->getMessage()), 'error');
             }
         }
     }
@@ -153,52 +142,75 @@ class Passport_Widget extends Typecho_Widget
      */
     public function doReset()
     {
-        /* 验证token */
-        $token = $this->request->filter('strip_tags', 'trim', 'xss')->token;
-        list($uid, $hashValidate, $timeStamp) = explode('.', base64_decode($token));
-        $currentTimeStamp = $this->options->gmtTime;
+        try {
+            /* 验证token */
+            $token = $this->request->filter('strip_tags', 'trim', 'xss')->token;
+            if (empty($token)) {
+                $this->notice->set(_t('无效的重置链接'), 'error');
+                $this->response->redirect($this->options->loginUrl);
+            }
+            
+            $decodedToken = base64_decode($token);
+            if (empty($decodedToken)) {
+                $this->notice->set(_t('无效的重置链接'), 'error');
+                $this->response->redirect($this->options->loginUrl);
+            }
+            
+            list($uid, $hashValidate, $timeStamp) = explode('.', $decodedToken);
+            $currentTimeStamp = $this->options->gmtTime;
 
-        /* 检查链接时效 */
-        if (($currentTimeStamp - $timeStamp) > 3600) {
-            // 链接失效, 返回登录页
-            $this->notice->set(_t('该链接已失效, 请重新获取'), 'notice');
-            $this->response->redirect($this->options->loginUrl);
-        }
-
-        $db = Typecho_Db::get();
-        $user = $db->fetchRow($db->select()->from('table.users')->where('uid = ?', $uid));
-
-        $hashString = $user['name'] . $user['mail'] . $user['password'];
-        $hashValidate = Typecho_Common::hashValidate($hashString, $hashValidate);
-
-        if (!$hashValidate) {
-            // token错误, 返回登录页
-            $this->notice->set(_t('该链接已失效, 请重新获取'), 'notice');
-            $this->response->redirect($this->options->loginUrl);
-        }
-
-        require_once 'theme/reset.php';
-
-        /* 重置密码 */
-        if ($this->request->isPost()) {
-            /* 验证表单 */
-            if ($error = $this->resetForm()->validate()) {
-                $this->notice->set($error, 'error');
-                return false;
+            /* 检查链接时效 */
+            if (($currentTimeStamp - $timeStamp) > 3600) {
+                // 链接失效, 返回登录页
+                $this->notice->set(_t('该链接已失效, 请重新获取'), 'notice');
+                $this->response->redirect($this->options->loginUrl);
             }
 
-            $hasher = new PasswordHash(8, true);
-            $password = $hasher->HashPassword($this->request->password);
+            $db = Typecho_Db::get();
+            $user = $db->fetchRow($db->select()->from('table.users')->where('uid = ?', $uid));
 
-            $update = $db->query($db->update('table.users')
-                ->rows(array('password' => $password))
-                ->where('uid = ?', $user['uid']));
-
-            if (!$update) {
-                $this->notice->set(_t('重置密码失败'), 'error');
+            if (empty($user)) {
+                $this->notice->set(_t('用户不存在'), 'error');
+                $this->response->redirect($this->options->loginUrl);
             }
 
-            $this->notice->set(_t('重置密码成功'), 'success');
+            $hashString = $user['name'] . $user['mail'] . $user['password'];
+            $hashValidate = Typecho_Common::hashValidate($hashString, $hashValidate);
+
+            if (!$hashValidate) {
+                // token错误, 返回登录页
+                $this->notice->set(_t('该链接已失效, 请重新获取'), 'notice');
+                $this->response->redirect($this->options->loginUrl);
+            }
+
+            require_once 'theme/reset.php';
+
+            /* 重置密码 */
+            if ($this->request->isPost()) {
+                /* 验证表单 */
+                if ($error = $this->resetForm()->validate()) {
+                    $this->notice->set($error, 'error');
+                    return false;
+                }
+
+                $password = password_hash($this->request->password, PASSWORD_DEFAULT);
+
+                $update = $db->query($db->update('table.users')
+                    ->rows(array('password' => $password))
+                    ->where('uid = ?', $user['uid']));
+
+                if (!$update) {
+                    $this->notice->set(_t('重置密码失败'), 'error');
+                } else {
+                    $this->notice->set(_t('重置密码成功'), 'success');
+                    $this->response->redirect($this->options->loginUrl);
+                }
+            }
+        } catch (Exception $e) {
+            $this->notice->set(_t('系统错误: ' . $e->getMessage()), 'error');
+            $this->response->redirect($this->options->loginUrl);
+        } catch (Error $e) {
+            $this->notice->set(_t('系统错误: ' . $e->getMessage()), 'error');
             $this->response->redirect($this->options->loginUrl);
         }
     }
