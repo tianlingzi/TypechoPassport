@@ -15,7 +15,7 @@ include 'header.php';
     
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-        background: url('https://bing.img.run/1920x1080.php') no-repeat center center fixed;
+        background: url('https://www.tianlingzi.top/bing/1920x1080.php') no-repeat center center fixed;
         background-size: cover;
         min-height: 100vh;
         display: flex;
