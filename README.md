@@ -5,7 +5,7 @@ Typecho 密码找回插件
 1、插件前身：https://github.com/mhcyong/Passport  
 2、主要更新了一下PHPMailer到最新版本  
 3、适配了PHP 8.5和Typecho 1.3.0  
-4、重新设计了密码找回和重置界面，使用现代化样式
+4、重新设计了密码找回和重置界面，使用现代化样式  
 5、插件网站：https://www.tianlingzi.top/archives/256/
 
 # 使用帮助

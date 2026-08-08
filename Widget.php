@@ -107,7 +107,8 @@ class TypechoPassport_Widget extends Typecho_Widget
                     $mail->SMTPSecure = $this->config->secure;    // 允许 TLS 或者ssl协议
                 }
 
-                $mail->setFrom($this->config->username, $this->options->title);
+                $senderName = !empty($this->config->senderName) ? $this->config->senderName : $this->options->title;
+                $mail->setFrom($this->config->username, $senderName);
                 $mail->addAddress($user['mail'], $user['name']);
 
                 //Content

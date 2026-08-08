@@ -60,11 +60,14 @@ class TypechoPassport_Plugin implements Typecho_Plugin_Interface
             'none' => _t('无')
         ), 'ssl', _t('安全类型'));
 
+        $senderName = new Typecho_Widget_Helper_Form_Element_Text('senderName', NULL, '', _t('发件人名称'), _t('默认使用网站名称，可在此自定义邮件发件人显示名称'));
+
         $form->addInput($host);
         $form->addInput($port);
         $form->addInput($username);
         $form->addInput($password);
         $form->addInput($secure);
+        $form->addInput($senderName);
     }
 
     /**
