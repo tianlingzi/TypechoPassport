@@ -5,7 +5,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  *
  * @package TypechoPassport
  * @author tianlingzi
- * @version 2.1
+ * @version 2.2
  * @link https://www.tianlingzi.top/archives/256/
  * @dependence 14.5.26-*
  */
