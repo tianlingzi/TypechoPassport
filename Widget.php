@@ -1,6 +1,9 @@
 <?php
 if (!defined('__TYPECHO_ROOT_DIR__')) exit;
-
+/**
+ * 找回密码类
+ * @package TypechoPassport
+ */
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
